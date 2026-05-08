@@ -3,7 +3,17 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Navbar from "@/components/Navbar"
+import { CalendarIcon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+
+import { Calendar } from "@/components/ui/calendar"
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 // ── TYPES ────────────────────────────────────────────────────────────────────
 
 type RFPStatus = "Approved" | "Draft" | "Pending"
@@ -183,24 +193,24 @@ const ITEMS_PER_PAGE = 15
 // ── STYLE HELPERS ─────────────────────────────────────────────────────────────
 
 const RFP_BADGE: Record<RFPStatus, string> = {
-  Approved: "bg-green-100 text-green-700",
-  Draft:    "bg-blue-100 text-blue-600",
-  Pending:  "bg-orange-100 text-orange-600",
+  Approved: "bg-slate-100 text-slate-700 border border-slate-200",
+  Draft:    "bg-slate-100 text-slate-600 border border-slate-200",
+  Pending:  "bg-amber-50 text-amber-700 border border-amber-100",
 }
 
 const VENDOR_BADGE: Record<VendorStatus, string> = {
-  Assigned: "text-gray-700 font-medium",
-  Pending:  "bg-orange-100 text-orange-600 px-2 py-0.5 rounded",
-  Draft:    "bg-blue-100 text-blue-600 px-2 py-0.5 rounded",
+  Assigned: "bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-medium",
+  Pending:  "bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded",
+  Draft:    "bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded",
 }
 
 const PRIORITY_STYLE: Record<Priority, string> = {
-  urgent: "text-red-600 font-semibold",
-  normal: "text-gray-600",
-  high:   "text-orange-500 font-semibold",
-  P2:     "bg-orange-400 text-white px-2 py-0.5 rounded text-[10px] font-bold",
-  P3:     "bg-amber-400 text-white px-2 py-0.5 rounded text-[10px] font-bold",
-  P4:     "bg-gray-400 text-white px-2 py-0.5 rounded text-[10px] font-bold",
+  urgent: "bg-slate-900 text-white px-2 py-0.5 rounded text-[10px] font-medium",
+  normal: "bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-medium",
+  high:   "bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded text-[10px] font-medium",
+  P2:     "bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[10px] font-medium",
+  P3:     "bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-medium",
+  P4:     "bg-slate-50 text-slate-500 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-medium",
 }
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
@@ -289,20 +299,89 @@ export default function HistoryPage() {
             ))}
           </select>
 
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-500 outline-none focus:border-blue-300"
-          />
+          <div className="relative">
 
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-500 outline-none focus:border-blue-300"
-          />
+  <Popover>
 
+    <PopoverTrigger asChild>
+
+      <Button
+        variant="outline"
+        className="w-[140px] justify-start text-left font-normal border-gray-200 bg-white hover:bg-gray-50 text-[13px]"
+      >
+
+        <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+
+        {dateFrom || "From date"}
+
+      </Button>
+
+    </PopoverTrigger>
+
+    <PopoverContent
+      className="w-auto p-0 border border-gray-200"
+      align="start"
+    >
+
+      <Calendar
+        mode="single"
+        selected={dateFrom ? new Date(dateFrom) : undefined}
+        onSelect={(date) =>
+          setDateFrom(
+            date
+              ? date.toISOString().split("T")[0]
+              : ""
+          )
+        }
+      />
+
+    </PopoverContent>
+
+  </Popover>
+
+</div>
+
+<div className="relative">
+
+  <Popover>
+
+    <PopoverTrigger asChild>
+
+      <Button
+        variant="outline"
+        className="w-[140px] justify-start text-left font-normal border-gray-200 bg-white hover:bg-gray-50 text-[13px]"
+      >
+
+        <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+
+        {dateTo || "To date"}
+
+      </Button>
+
+    </PopoverTrigger>
+
+    <PopoverContent
+      className="w-auto p-0 border border-gray-200"
+      align="start"
+    >
+
+      <Calendar
+        mode="single"
+        selected={dateTo ? new Date(dateTo) : undefined}
+        onSelect={(date) =>
+          setDateTo(
+            date
+              ? date.toISOString().split("T")[0]
+              : ""
+          )
+        }
+      />
+
+    </PopoverContent>
+
+  </Popover>
+
+</div>
           <button
             onClick={handleSearch}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium transition"
