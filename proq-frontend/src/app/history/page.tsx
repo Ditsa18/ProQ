@@ -9,6 +9,14 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { listHistory, searchHistory, type ServiceRequest } from "@/lib/api/history"
 import { listRfps, type RfpDocument } from "@/lib/api/rfp"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
 
 // ── TYPES ─────────────────────────────────────────────────────────────────────
 
@@ -160,25 +168,77 @@ export default function HistoryPage() {
             className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-700 placeholder:text-gray-400 outline-none focus:border-blue-300 w-44"
           />
 
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-600 outline-none focus:border-blue-300 bg-white"
-          >
-            {["All Priorities", "urgent", "high", "normal", "P2", "P3", "P4"].map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
+          {/* Priority Filter */}
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-600 outline-none focus:border-blue-300 bg-white"
+<div className="w-[180px]">
+  <Combobox
+    items={[
+      "All Priorities",
+      "urgent",
+      "high",
+      "normal",
+      "P2",
+      "P3",
+      "P4",
+    ]}
+    value={priorityFilter}
+    onValueChange={(value) => {
+  if (value) setPriorityFilter(value)
+}}
+  >
+    <ComboboxInput placeholder="All Priorities" />
+
+    <ComboboxContent>
+      <ComboboxEmpty>No priority found.</ComboboxEmpty>
+
+      <ComboboxList>
+        {(item) => (
+          <ComboboxItem
+            key={item}
+            value={item}
           >
-            {["All Statuses", "Approved", "Draft", "Pending", "Assigned"].map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
+            {item}
+          </ComboboxItem>
+        )}
+      </ComboboxList>
+    </ComboboxContent>
+  </Combobox>
+</div>
+
+{/* Status Filter */}
+
+<div className="w-[180px]">
+  <Combobox
+    items={[
+      "All Statuses",
+      "Approved",
+      "Draft",
+      "Pending",
+      "Assigned",
+    ]}
+    value={statusFilter}
+    onValueChange={(value) => {
+  if (value) setStatusFilter(value)
+}}
+  >
+    <ComboboxInput placeholder="All Statuses" />
+
+    <ComboboxContent>
+      <ComboboxEmpty>No status found.</ComboboxEmpty>
+
+      <ComboboxList>
+        {(item) => (
+          <ComboboxItem
+            key={item}
+            value={item}
+          >
+            {item}
+          </ComboboxItem>
+        )}
+      </ComboboxList>
+    </ComboboxContent>
+  </Combobox>
+</div>
 
           <div className="relative">
             <Popover>

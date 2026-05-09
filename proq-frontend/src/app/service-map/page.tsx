@@ -3,6 +3,14 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import Navbar from '@/components/Navbar'
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
 
 type ServiceRequest = {
   id: string
@@ -78,29 +86,102 @@ export default function ServiceMapPage() {
 
           {/* Filters */}
           <div className="flex gap-2 px-4 py-2.5 border-b border-gray-100">
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriority(e.target.value)}
-              className="flex-1 text-[12px] px-2 py-1.5 border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+
+  <div className="flex-1">
+
+    <Combobox
+      items={[
+        "All Priorities",
+        "urgent",
+        "high",
+        "normal",
+        "P2",
+        "P3",
+        "P4",
+      ]}
+      value={priorityFilter || "All Priorities"}
+      onValueChange={(value) => {
+        if (value) {
+          setPriority(
+            value === "All Priorities"
+              ? ""
+              : value
+          )
+        }
+      }}
+    >
+
+      <ComboboxInput placeholder="All Priorities" />
+
+      <ComboboxContent>
+
+        <ComboboxEmpty>
+          No priority found.
+        </ComboboxEmpty>
+
+        <ComboboxList>
+          {(item) => (
+            <ComboboxItem
+              key={item}
+              value={item}
             >
-              <option value="">All Priorities</option>
-              <option value="urgent">urgent</option>
-              <option value="high">high</option>
-              <option value="normal">normal</option>
-              <option value="P2">P2</option>
-              <option value="P3">P3</option>
-              <option value="P4">P4</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatus(e.target.value)}
-              className="flex-1 text-[12px] px-2 py-1.5 border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              {item}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+
+      </ComboboxContent>
+
+    </Combobox>
+
+  </div>
+
+  <div className="flex-1">
+
+    <Combobox
+      items={[
+        "All Statuses",
+        "Assigned",
+        "Pending",
+      ]}
+      value={statusFilter || "All Statuses"}
+      onValueChange={(value) => {
+        if (value) {
+          setStatus(
+            value === "All Statuses"
+              ? ""
+              : value
+          )
+        }
+      }}
+    >
+
+      <ComboboxInput placeholder="All Statuses" />
+
+      <ComboboxContent>
+
+        <ComboboxEmpty>
+          No status found.
+        </ComboboxEmpty>
+
+        <ComboboxList>
+          {(item) => (
+            <ComboboxItem
+              key={item}
+              value={item}
             >
-              <option value="">All Statuses</option>
-              <option value="Assigned">Assigned</option>
-              <option value="Pending">Pending</option>
-            </select>
-          </div>
+              {item}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+
+      </ComboboxContent>
+
+    </Combobox>
+
+  </div>
+
+</div>
 
           {/* List */}
           <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
