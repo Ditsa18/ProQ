@@ -1,13 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense } from "react"
+import { useRouter } from "next/navigation"
 import Navbar from "@/components/Navbar"
-import { getCall } from "@/lib/api/calls"
-import { getVendorSuggestions, assignVendor } from "@/lib/api/vendors"
-import { createRfp, updateRfp } from "@/lib/api/rfp"
-import type { Call, Vendor, AnalysisData } from "@/types"
+
+// ── TYPES ────────────────────────────────────────────────────────────────────
 
 type Stage = "analyzing" | "generating" | "awaiting" | "assigned"
 
@@ -19,13 +16,79 @@ interface BOQItem {
   rate: number | null
 }
 
-const DEFAULT_BOQ: BOQItem[] = [
-  { sl: 1, description: "Service inspection & fault diagnosis", unit: "LS", qty: 1, rate: null },
-  { sl: 2, description: "Primary service work", unit: "Nos", qty: 1, rate: null },
-  { sl: 3, description: "Secondary service work", unit: "Nos", qty: 1, rate: null },
-  { sl: 4, description: "Consumables & materials", unit: "LS", qty: 1, rate: null },
-  { sl: 5, description: "Labour charges", unit: "LS", qty: 1, rate: null },
+// ── DUMMY DATA ────────────────────────────────────────────────────────────────
+// TODO (backend team): replace with real data passed from the call page
+// e.g. via router state, context, or a shared store.
+
+const SUMMARY = {
+  serviceType: "AC Repair",
+  priority: "urgent",
+  location: "—, Thane, Mumbai",
+  budget: "2000 INR",
+  specifications: "—",
+}
+
+const RFP_TEXT = `REQUEST FOR PROPOSAL (RFP)
+Service: AC Repair & Maintenance
+Location: Thane, Mumbai
+Budget: ₹2,000
+Priority: Urgent
+Contact: (798) 099-1392
+
+SCOPE OF WORK:
+Inspection, diagnosis and repair of non-functional AC unit at the customer's premises.
+
+BILL OF QUANTITY:
+Sl | Item Description                    | Unit | Qty
+1  | AC inspection & fault diagnosis     | LS   | 1
+2  | Cooling coil cleaning               | Nos  | 1
+3  | Gas pressure check & top-up if needed | Nos | 1
+4  | Filter cleaning & servicing         | Nos  | 1
+5  | Condensate tray cleaning            | Nos  | 1
+6  | Electrical connection check         | LS   | 1
+7  | Spare parts (if required)           | LS   | 1
+
+Terms: Work to be completed within 24 hours of assignment.
+Payment: Post-service verification.`
+
+const BOQ_ITEMS: BOQItem[] = [
+  { sl: 1, description: "AC inspection & fault diagnosis", unit: "LS", qty: 1, rate: null },
+  { sl: 2, description: "Cooling coil cleaning", unit: "Nos", qty: 1, rate: null },
+  { sl: 3, description: "Gas pressure check & top-up if needed", unit: "Nos", qty: 1, rate: null },
+  { sl: 4, description: "Filter cleaning & servicing", unit: "Nos", qty: 1, rate: null },
+  { sl: 5, description: "Condensate tray cleaning", unit: "Nos", qty: 1, rate: null },
+  { sl: 6, description: "Electrical connection check", unit: "LS", qty: 1, rate: null },
+  { sl: 7, description: "Spare parts (if required)", unit: "LS", qty: 1, rate: null },
 ]
+
+const VENDORS = [
+  {
+    id: 1,
+    name: "DoItPro General Services Vijay Nagar",
+    location: "Vijay Nagar, Indore",
+    phone: "+91-8312198819",
+    rating: "5/5",
+    tags: ["TV mounting", "home inspection", "picture hanging", "minor repairs", "handyman services"],
+  },
+  {
+    id: 2,
+    name: "BreezePro AC Services",
+    location: "New Town, Kolkata",
+    phone: "+91-8148018451",
+    rating: "5/5",
+    tags: ["window AC service", "AC installation", "AC thermostat repair", "AC maintenance", "AC duct cleaning"],
+  },
+  {
+    id: 3,
+    name: "MegaMachine Heavy Equipment Gurgaon",
+    location: "Sector 29, Gurgaon",
+    phone: "+91-8804335048",
+    rating: "5/5",
+    tags: ["crane rental", "concrete mixer", "dumper rental", "scaffolding rental", "excavator rental"],
+  },
+]
+
+// ── STAGE CONFIG ─────────────────────────────────────────────────────────────
 
 const STAGES: { key: Stage; label: string }[] = [
   { key: "analyzing", label: "Analyzing Requirements..." },
@@ -41,55 +104,27 @@ const STAGE_BADGE: Record<Stage, { label: string; className: string }> = {
   assigned: { label: "Ready to Assign", className: "bg-green-50 text-green-600 border-green-200" },
 }
 
-function buildRfpText(analysis: AnalysisData): string {
-  return `REQUEST FOR PROPOSAL (RFP)
-Service: ${analysis.serviceType || "N/A"}
-Location: ${analysis.location || "N/A"}
-Budget: ${analysis.budget || "N/A"}
-Priority: ${analysis.priority || "Normal"}
-Contact: ${analysis.contactInfo || "N/A"}
+// ── COMPONENT ────────────────────────────────────────────────────────────────
 
-SCOPE OF WORK:
-${analysis.specifications || "To be determined based on site inspection."}
-
-SPECIAL REQUIREMENTS:
-${analysis.specialRequirements || "None"}
-
-Terms: Work to be completed within 24 hours of assignment.
-Payment: Post-service verification.`
-}
-
-function SummaryContent() {
+export default function SummaryPage() {
   const router = useRouter()
-  const params = useSearchParams()
-  const callId = params.get("callId")
-  const requestId = params.get("requestId")
 
   const [stage, setStage] = useState<Stage>("analyzing")
   const [activeTab, setActiveTab] = useState<"rfp" | "boq">("rfp")
-  const [call, setCall] = useState<Call | null>(null)
-  const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
-  const [vendors, setVendors] = useState<Vendor[]>([])
-  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([])
-  const [rfpId, setRfpId] = useState<string | null>(null)
-  const [boqItems, setBoqItems] = useState<BOQItem[]>(DEFAULT_BOQ)
+  const [boqRates, setBoqRates] = useState<(number | null)[]>(BOQ_ITEMS.map((i) => i.rate))
   const [boqSaved, setBoqSaved] = useState(false)
   const [toast, setToast] = useState("")
+  const [selectedVendors, setSelectedVendors] = useState<number[]>([1, 2, 3])
 
-  useEffect(() => {
-    if (!callId) return
-    getCall(callId).then((c) => {
-      setCall(c)
-      if (c.analysis) setAnalysis(c.analysis)
-    }).catch(() => {})
-  }, [callId])
 
+  // Auto-progress: analyzing → generating after 3s
   useEffect(() => {
     if (stage !== "analyzing") return
     const t = setTimeout(() => setStage("generating"), 3000)
     return () => clearTimeout(t)
   }, [stage])
 
+  // generating → awaiting after 3 more seconds, and show RFP tab
   useEffect(() => {
     if (stage !== "generating") return
     const t = setTimeout(() => {
@@ -99,53 +134,26 @@ function SummaryContent() {
     return () => clearTimeout(t)
   }, [stage])
 
-  useEffect(() => {
-    if (!analysis?.serviceType) return
-    getVendorSuggestions(analysis.serviceType).then((v) => {
-      setVendors(v)
-      setSelectedVendorIds(v.map((x) => x.id))
-    }).catch(() => {})
-  }, [analysis?.serviceType])
+  const stageIndex = STAGES.findIndex((s) => s.key === stage)
 
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(""), 2500)
   }
 
-  const handleApproveRFP = async () => {
-    if (!analysis) return
-    try {
-      const rfp = await createRfp({
-        requestId: requestId ?? undefined,
-        title: analysis.serviceType || "Service Request",
-        serviceType: analysis.serviceType || "General",
-        priority: analysis.priority?.toLowerCase().includes("urgent") ? "urgent" : "normal",
-        description: analysis.specifications,
-        scope: analysis.specialRequirements,
-        specifications: analysis.specifications ? [analysis.specifications] : [],
-      })
-      setRfpId(rfp.id)
-      await updateRfp(rfp.id, { rfpStatus: "Approved" })
-      setStage("assigned")
-      showToast("RFP Approved!")
-    } catch {
-      showToast("Failed to approve RFP")
-    }
+  const toggleVendor = (id: number) => {
+    setSelectedVendors((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    )
   }
 
-  const handleAssignVendors = async () => {
-    if (!requestId || selectedVendorIds.length === 0) {
-      router.push("/history")
-      return
-    }
-    try {
-      await Promise.all(
-        selectedVendorIds.map((vid) =>
-          assignVendor(vid, { requestId, rfpId: rfpId ?? undefined })
-        )
-      )
-    } catch {}
+  const handleAssignVendors = () => {
     router.push("/history")
+  }
+
+  const handleApproveRFP = () => {
+    setStage("assigned")
+    showToast("RFP Approved!")
   }
 
   const handleSaveBOQ = () => {
@@ -153,36 +161,36 @@ function SummaryContent() {
     showToast("BOQ pricing saved")
   }
 
-  const toggleVendor = (id: string) => {
-    setSelectedVendorIds((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-    )
-  }
+  const totalAmount = boqRates.reduce<number>((sum, r) => sum + (r ?? 0), 0)
 
-  const totalAmount = boqItems.reduce<number>((sum, item) => sum + (item.rate ?? 0) * item.qty, 0)
   const rfpAvailable = stage === "awaiting" || stage === "assigned"
-  const stageIndex = STAGES.findIndex((s) => s.key === stage)
   const badge = STAGE_BADGE[stage]
-  const displayAnalysis = analysis ?? { serviceType: "—", priority: "—", location: "—", budget: "—", specifications: "—" }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
 
+      {/* NAVBAR */}
       <Navbar isCallActive={false} />
 
+      {/* STATUS BAR */}
       <div className="h-11 flex items-center gap-2.5 px-5 bg-white border-b border-gray-200 flex-shrink-0">
         <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-full text-[11px] font-bold tracking-wide">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
           LIVE CALL
         </span>
+        <span className="text-[15px] font-bold text-gray-900 tabular-nums tracking-widest">
+          02:18
+        </span>
+        <span className="text-gray-300">—</span>
 
+        {/* Service type + priority chips — appear after analyzing */}
         {rfpAvailable && (
           <>
             <span className="flex items-center gap-1 text-[12px] text-gray-600">
-              <span className="text-gray-400">△</span> {displayAnalysis.serviceType}
+              <span className="text-gray-400">△</span> {SUMMARY.serviceType}
             </span>
             <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[11px] font-semibold">
-              {displayAnalysis.priority}
+              {SUMMARY.priority}
             </span>
           </>
         )}
@@ -191,19 +199,25 @@ function SummaryContent() {
           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
           Connected
         </span>
+        <span className="px-2 py-1 bg-gray-50 text-gray-500 border border-gray-200 rounded-full text-[11px]">
+          EN/HI
+        </span>
 
+        {/* Toast */}
         {toast && (
-          <div className="ml-auto px-3 py-1 bg-gray-800 text-white text-[12px] rounded-full">
+          <div className="ml-auto px-3 py-1 bg-gray-800 text-white text-[12px] rounded-full animate-fadeIn">
             {toast}
           </div>
         )}
       </div>
 
+      {/* MAIN GRID */}
       <div className="flex-1 grid grid-cols-[1fr_420px] gap-3 p-3 overflow-hidden min-h-0">
 
-        {/* LEFT: Service Request Summary */}
+        {/* ── LEFT: SERVICE REQUEST SUMMARY ── */}
         <div className="bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden">
 
+          {/* Panel header */}
           <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
             <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-[15px]">📋</div>
             <div>
@@ -213,13 +227,14 @@ function SummaryContent() {
           </div>
 
           <div className="flex-1 overflow-y-auto">
+            {/* Summary fields */}
             <div className="border-b border-gray-100">
               {[
-                { label: "Service Type", value: rfpAvailable ? displayAnalysis.serviceType : "—" },
-                { label: "Priority", value: rfpAvailable ? displayAnalysis.priority : "—" },
-                { label: "Location", value: rfpAvailable ? (displayAnalysis.location || "—") : "—" },
-                { label: "Budget", value: rfpAvailable ? (displayAnalysis.budget || "—") : "—" },
-                { label: "Specifications", value: displayAnalysis.specifications || "—" },
+                { label: "Service Type", value: rfpAvailable ? SUMMARY.serviceType : "—" },
+                { label: "Priority", value: rfpAvailable ? SUMMARY.priority : "—" },
+                { label: "Location", value: rfpAvailable ? SUMMARY.location : "—" },
+                { label: "Budget", value: rfpAvailable ? SUMMARY.budget : "—" },
+                { label: "Specifications", value: SUMMARY.specifications },
               ].map((f) => (
                 <div key={f.label} className="px-5 py-3 border-b border-gray-50 last:border-0">
                   <div className="text-[11px] text-gray-400 font-medium mb-1">{f.label}</div>
@@ -228,8 +243,10 @@ function SummaryContent() {
               ))}
             </div>
 
+            {/* RFP / BOQ tabs — only after generating */}
             {rfpAvailable && (
               <div className="flex flex-col flex-1">
+                {/* Tabs */}
                 <div className="flex border-b border-gray-100 px-5 pt-2">
                   {(["rfp", "boq"] as const).map((tab) => (
                     <button
@@ -246,14 +263,16 @@ function SummaryContent() {
                   ))}
                 </div>
 
+                {/* RFP Document tab */}
                 {activeTab === "rfp" && (
                   <div className="mx-4 my-3 bg-gray-50 rounded-lg border border-gray-200 p-4 overflow-y-auto max-h-[260px]">
                     <pre className="text-[11px] text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
-                      {buildRfpText(displayAnalysis as AnalysisData)}
+                      {RFP_TEXT}
                     </pre>
                   </div>
                 )}
 
+                {/* Bill of Quantity tab */}
                 {activeTab === "boq" && (
                   <div className="px-4 py-3 overflow-y-auto">
                     <table className="w-full text-[12px]">
@@ -262,14 +281,15 @@ function SummaryContent() {
                           <th className="text-left text-[10px] text-gray-400 font-semibold pb-2 pr-2 w-8">SL NO</th>
                           <th className="text-left text-[10px] text-gray-400 font-semibold pb-2 pr-2">ITEM DESCRIPTION</th>
                           <th className="text-left text-[10px] text-gray-400 font-semibold pb-2 pr-2 w-12">UNIT</th>
-                          <th className="text-left text-[10px] text-gray-400 font-semibold pb-2 pr-2 w-16">QTY</th>
+                          <th className="text-left text-[10px] text-gray-400 font-semibold pb-2 pr-2 w-16">QUANTITY</th>
                           <th className="text-left text-[10px] text-gray-400 font-semibold pb-2 pr-2 w-28">RATE (₹)</th>
                           <th className="text-right text-[10px] text-gray-400 font-semibold pb-2 w-24">AMOUNT (₹)</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {boqItems.map((item, i) => {
-                          const amount = item.rate !== null ? item.rate * item.qty : null
+                        {BOQ_ITEMS.map((item, i) => {
+                          const rate = boqRates[i]
+                          const amount = rate !== null ? rate * item.qty : null
                           return (
                             <tr key={item.sl} className="border-b border-gray-50">
                               <td className="py-2.5 pr-2 text-gray-400">{item.sl}</td>
@@ -280,18 +300,18 @@ function SummaryContent() {
                                 <input
                                   type="number"
                                   placeholder="Enter rate"
-                                  value={item.rate ?? ""}
+                                  value={rate ?? ""}
                                   onChange={(e) => {
                                     const val = e.target.value === "" ? null : Number(e.target.value)
-                                    setBoqItems((prev) => {
+                                    setBoqRates((prev) => {
                                       const updated = [...prev]
-                                      updated[i] = { ...updated[i], rate: val }
+                                      updated[i] = val
                                       return updated
                                     })
                                     setBoqSaved(false)
                                   }}
                                   className={`w-full px-2.5 py-1 text-[12px] border rounded-md outline-none transition ${
-                                    item.rate !== null
+                                    rate !== null
                                       ? "border-blue-300 bg-white text-gray-900 font-medium"
                                       : "border-gray-200 bg-gray-50 text-gray-400 placeholder:text-gray-300"
                                   } focus:border-blue-400 focus:ring-1 focus:ring-blue-100`}
@@ -336,6 +356,7 @@ function SummaryContent() {
             )}
           </div>
 
+          {/* Bottom action buttons — only after RFP is generated */}
           {rfpAvailable && (
             <div className="flex gap-3 px-4 py-3 border-t border-gray-100 flex-shrink-0">
               <button
@@ -363,9 +384,10 @@ function SummaryContent() {
           )}
         </div>
 
-        {/* RIGHT: Vendor Assignment */}
+        {/* ── RIGHT: VENDOR ASSIGNMENT ── */}
         <div className="bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden">
 
+          {/* Panel header */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-[15px]">🤝</div>
@@ -379,27 +401,46 @@ function SummaryContent() {
             </span>
           </div>
 
+          {/* Stage pipeline */}
           <div className="px-5 py-4 flex-shrink-0">
             {STAGES.map((s, i) => {
               const done = i < stageIndex
               const active = i === stageIndex
+              const pending = i > stageIndex
               const isLast = i === STAGES.length - 1
 
               return (
                 <div key={s.key} className="flex items-start gap-3">
+                  {/* Dot + line */}
                   <div className="flex flex-col items-center">
-                    <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 mt-0.5 transition-all duration-500 ${
-                      done ? "bg-green-500 border-green-500" : active ? "bg-cyan-400 border-cyan-400 animate-pulse" : "bg-white border-gray-300"
-                    }`} />
+                    <div
+                      className={`w-3 h-3 rounded-full border-2 flex-shrink-0 mt-0.5 transition-all duration-500 ${
+                        done
+                          ? "bg-green-500 border-green-500"
+                          : active
+                          ? "bg-cyan-400 border-cyan-400 animate-pulse"
+                          : "bg-white border-gray-300"
+                      }`}
+                    />
                     {!isLast && (
-                      <div className={`w-0.5 h-7 mt-0.5 transition-all duration-700 ${
-                        done ? "bg-green-400" : active ? "bg-cyan-200" : "bg-gray-200"
-                      }`} />
+                      <div
+                        className={`w-0.5 h-7 mt-0.5 transition-all duration-700 ${
+                          done ? "bg-green-400" : active ? "bg-cyan-200" : "bg-gray-200"
+                        }`}
+                      />
                     )}
                   </div>
-                  <div className={`text-[13px] pb-1 transition-colors duration-300 ${
-                    done ? "text-green-600 font-medium" : active ? "text-cyan-600 font-medium" : "text-gray-400"
-                  }`}>
+
+                  {/* Label */}
+                  <div
+                    className={`text-[13px] pb-1 transition-colors duration-300 ${
+                      done
+                        ? "text-green-600 font-medium"
+                        : active
+                        ? "text-cyan-600 font-medium"
+                        : "text-gray-400"
+                    }`}
+                  >
                     {s.label}
                   </div>
                 </div>
@@ -407,39 +448,46 @@ function SummaryContent() {
             })}
           </div>
 
+          {/* Vendor selection — only at assigned stage */}
           {stage === "assigned" && (
             <div className="flex-1 overflow-y-auto px-4 pb-3 flex flex-col gap-3">
 
+              {/* AI note */}
+              <p className="text-[11px] text-gray-500 leading-relaxed pt-1">
+                No vendors specifically offering AC repair services were available in Thane, Mumbai. Closest matches were plumbing services in Mumbai that might overlap with some AC repair tasks.
+              </p>
+
+              {/* Section title + count + select all */}
               <div className="flex items-center justify-between">
                 <div className="text-[13px] font-semibold text-cyan-600">Select &amp; Assign Vendors</div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[12px] text-gray-500">
-                  <span className="font-semibold text-gray-800">{selectedVendorIds.length}</span> selected
+                  <span className="font-semibold text-gray-800">{selectedVendors.length}</span> selected
                 </span>
                 <button
-                  onClick={() => setSelectedVendorIds(vendors.map((v) => v.id))}
+                  onClick={() => setSelectedVendors(VENDORS.map((v) => v.id))}
                   className="text-[11px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1 hover:bg-gray-50 transition"
                 >
-                  Select All
+                  Select All Recommended
                 </button>
               </div>
 
-              {vendors.length === 0 && (
-                <p className="text-[12px] text-gray-400 text-center py-4">No vendor suggestions found</p>
-              )}
-
-              {vendors.map((v) => {
-                const selected = selectedVendorIds.includes(v.id)
+              {/* Vendor cards with checkboxes */}
+              {VENDORS.map((v) => {
+                const selected = selectedVendors.includes(v.id)
                 return (
                   <div
                     key={v.id}
                     onClick={() => toggleVendor(v.id)}
                     className={`border rounded-xl p-4 cursor-pointer transition ${
-                      selected ? "border-blue-400 bg-blue-50/40" : "border-gray-200 hover:border-gray-300 bg-white"
+                      selected
+                        ? "border-blue-400 bg-blue-50/40"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
                     }`}
                   >
                     <div className="flex items-start gap-3">
+                      {/* Checkbox */}
                       <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border-2 transition ${
                         selected ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
                       }`}>
@@ -453,8 +501,12 @@ function SummaryContent() {
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-semibold text-gray-900">{v.name}</div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[11px] text-gray-400">📍 {v.location}</span>
-                          <span className="text-[11px] text-gray-400">📞 {v.phone}</span>
+                          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                            📍 {v.location}
+                          </span>
+                          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                            📞 {v.phone}
+                          </span>
                         </div>
                         <div className="text-[11px] text-amber-500 font-medium mt-1">★ {v.rating}</div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -470,12 +522,13 @@ function SummaryContent() {
                 )
               })}
 
+              {/* Assign button */}
               <div className="flex justify-end pt-1 pb-2">
                 <button
                   onClick={handleAssignVendors}
-                  disabled={selectedVendorIds.length === 0}
+                  disabled={selectedVendors.length === 0}
                   className={`px-5 py-2.5 rounded-lg text-[13px] font-semibold transition ${
-                    selectedVendorIds.length > 0
+                    selectedVendors.length > 0
                       ? "bg-blue-700 hover:bg-blue-800 text-white"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   }`}
@@ -486,8 +539,10 @@ function SummaryContent() {
             </div>
           )}
 
+          {/* Spacer when no vendors yet */}
           {stage !== "assigned" && <div className="flex-1" />}
 
+          {/* Bottom buttons */}
           <div className="flex gap-2 px-4 py-3 border-t border-gray-100 flex-shrink-0">
             <button
               onClick={() => router.push("/call")}
@@ -507,6 +562,7 @@ function SummaryContent() {
 
       </div>
 
+      {/* BOTTOM RIGHT: EN/HI Voice */}
       <div className="fixed bottom-4 right-4">
         <button className="flex items-center gap-1.5 bg-white border border-gray-200 shadow-sm rounded-full px-3 py-1.5 text-[11px] text-gray-600 hover:bg-gray-50 transition">
           🎙 EN/HI Voice
@@ -514,13 +570,5 @@ function SummaryContent() {
       </div>
 
     </div>
-  )
-}
-
-export default function SummaryPage() {
-  return (
-    <Suspense>
-      <SummaryContent />
-    </Suspense>
   )
 }

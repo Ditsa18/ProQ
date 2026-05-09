@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 
 export default function LoginPage() {
+
   const router = useRouter()
 
   const [email, setEmail] = useState("")
@@ -16,16 +17,13 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
-
-    const { error: authError } = await authClient.signIn.email({ email, password })
-
-    if (authError) {
-      setError(authError.message ?? "Sign in failed")
+    const { error: err } = await authClient.signIn.email({ email, password })
+    if (err) {
+      setError(err.message ?? "Sign in failed")
       setLoading(false)
-      return
+    } else {
+      router.push("/call")
     }
-
-    router.push("/call")
   }
 
   return (
@@ -33,60 +31,117 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
 
+        {/* LOGO */}
+
         <div className="flex flex-col items-center mb-6">
 
-          <div className="w-16 h-16 bg-black rounded-full rounded-br-lg mb-4" />
+          <div
+            className="
+              w-16 h-16
+              bg-black
+              rounded-full
+              rounded-br-lg
+              mb-4
+            "
+          />
 
-          <h1 className="text-2xl font-semibold text-gray-900">ProQ</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            ProQ
+          </h1>
 
           <p className="text-gray-600 text-sm">
-            AI-Powered Procurement &amp; Home Services
+            AI-Powered Procurement & Home Services
           </p>
 
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        {/* FORM */}
+
+        <form
+          onSubmit={handleLogin}
+          className="space-y-4"
+        >
+
+          {/* EMAIL */}
 
           <div>
-            <label className="text-sm font-medium text-gray-800">Email</label>
+
+            <label className="text-sm font-medium text-gray-800">
+              Email
+            </label>
+
             <input
               type="email"
               required
               placeholder="Enter your email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900"
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              className="
+                w-full mt-1 px-3 py-2
+                border border-gray-300
+                rounded-lg
+                bg-gray-100
+                text-gray-900
+              "
             />
+
           </div>
 
+          {/* PASSWORD */}
+
           <div>
-            <label className="text-sm font-medium text-gray-800">Password</label>
+
+            <label className="text-sm font-medium text-gray-800">
+              Password
+            </label>
+
             <input
               type="password"
               required
               placeholder="Enter your password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900"
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              className="
+                w-full mt-1 px-3 py-2
+                border border-gray-300
+                rounded-lg
+                bg-gray-100
+                text-gray-900
+              "
             />
+
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+          {/* BUTTON */}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+            className="
+              w-full py-2.5
+              bg-blue-600
+              text-white
+              rounded-lg
+              font-semibold
+              hover:bg-blue-700
+              transition
+            "
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
         </form>
 
+        {/* CREATE ACCOUNT */}
+
         <p className="text-center text-sm text-gray-600 mt-6">
-          Don&apos;t have an account?{" "}
+          Don't have an account?{" "}
           <span
             onClick={() => router.push("/signup")}
             className="text-blue-600 font-medium cursor-pointer hover:underline"

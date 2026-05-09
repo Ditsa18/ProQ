@@ -1,26 +1,36 @@
-import { apiFetch } from "./client"
-import type { ServiceRequest, Call, RfpDocument } from "@/types"
+import { apiFetch } from './client'
 
-export interface HistorySearchParams {
+export type ServiceRequest = {
+  id: string
+  requestId: string
+  priority: string
+  status: string
+  serviceType: string
+  location: string | null
+  budget: string | null
+  contactInfo: string | null
+  specifications: string[]
+  specialRequirements: string | null
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type SearchParams = {
   priority?: string
   status?: string
   from?: string
   to?: string
 }
 
-export interface HistoryDetail {
-  request: ServiceRequest
-  calls: Call[]
-  rfps: RfpDocument[]
+export const listHistory = () => apiFetch<ServiceRequest[]>('/api/history')
+
+export const searchHistory = (params: SearchParams) => {
+  const qs = new URLSearchParams()
+  if (params.priority) qs.set('priority', params.priority)
+  if (params.status) qs.set('status', params.status)
+  if (params.from) qs.set('from', params.from)
+  if (params.to) qs.set('to', params.to)
+  const query = qs.toString()
+  return apiFetch<ServiceRequest[]>(`/api/history/search${query ? `?${query}` : ''}`)
 }
-
-export const getHistory = () =>
-  apiFetch<ServiceRequest[]>("/api/history")
-
-export const searchHistory = (params: HistorySearchParams) => {
-  const qs = "?" + new URLSearchParams(params as Record<string, string>).toString()
-  return apiFetch<ServiceRequest[]>(`/api/history/search${qs}`)
-}
-
-export const getHistoryDetail = (requestId: string) =>
-  apiFetch<HistoryDetail>(`/api/history/${requestId}`)

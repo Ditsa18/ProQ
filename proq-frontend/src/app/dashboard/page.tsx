@@ -7,14 +7,7 @@ import ActivityChart from "@/components/dashboard/ActivityChart"
 import PriorityDonut from "@/components/dashboard/PriorityDonut"
 import RecentRequests from "@/components/dashboard/RecentRequests"
 import VendorWorkload from "@/components/dashboard/VendorWorkload"
-import {
-  getStats,
-  getActivity,
-  getPriorityDistribution,
-  getVendorWorkload,
-  getRecentRequests,
-} from "@/lib/api/dashboard"
-import type { DashboardStats, ActivityBucket, PriorityDistribution, VendorWorkload as VendorWorkloadType, ServiceRequest } from "@/types"
+import { getStats, type DashboardStats } from "@/lib/api/dashboard"
 
 const PhoneIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,26 +35,13 @@ const CheckIcon = () => (
   </svg>
 )
 
-const EMPTY_STATS: DashboardStats = {
-  totalRequests: 0,
-  urgentRequests: 0,
-  pendingApproval: 0,
-  vendorAssigned: 0,
-}
+const DEFAULT_STATS: DashboardStats = { totalRequests: 0, urgentRequests: 0, pendingApproval: 0, vendorAssigned: 0 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
-  const [activity, setActivity] = useState<ActivityBucket[]>([])
-  const [priorityDist, setPriorityDist] = useState<PriorityDistribution>({})
-  const [vendorWorkload, setVendorWorkload] = useState<VendorWorkloadType>({})
-  const [recentRequests, setRecentRequests] = useState<ServiceRequest[]>([])
+  const [stats, setStats] = useState<DashboardStats>(DEFAULT_STATS)
 
   useEffect(() => {
-    getStats().then(setStats).catch(() => {})
-    getActivity().then(setActivity).catch(() => {})
-    getPriorityDistribution().then(setPriorityDist).catch(() => {})
-    getVendorWorkload().then(setVendorWorkload).catch(() => {})
-    getRecentRequests().then(setRecentRequests).catch(() => {})
+    getStats().then(setStats).catch(console.error)
   }, [])
 
   return (
@@ -80,48 +60,20 @@ export default function DashboardPage() {
       <div className="flex-1 px-6 py-5 flex flex-col gap-4 overflow-auto">
 
         <div className="grid grid-cols-4 gap-4">
-          <StatCard
-            label="Total Requests"
-            value={stats.totalRequests}
-            subLabel="Total Requests"
-            icon={<PhoneIcon />}
-            valueColor="text-gray-900"
-            borderColor="border-t-gray-200"
-          />
-          <StatCard
-            label="Urgent Requests"
-            value={stats.urgentRequests}
-            subLabel="Urgent"
-            icon={<AlertIcon />}
-            valueColor="text-gray-900"
-            borderColor="border-t-gray-200"
-          />
-          <StatCard
-            label="Pending Approval"
-            value={stats.pendingApproval}
-            subLabel="Pending Approval"
-            icon={<ClockIcon />}
-            valueColor="text-gray-900"
-            borderColor="border-t-gray-200"
-          />
-          <StatCard
-            label="Vendor Assigned"
-            value={stats.vendorAssigned}
-            subLabel="Assigned"
-            icon={<CheckIcon />}
-            valueColor="text-gray-900"
-            borderColor="border-t-gray-200"
-          />
+          <StatCard label="Total Requests" value={stats.totalRequests} subLabel="Total Requests" icon={<PhoneIcon />} valueColor="text-gray-900" borderColor="border-t-gray-200" />
+          <StatCard label="Urgent Requests" value={stats.urgentRequests} subLabel="Urgent" icon={<AlertIcon />} valueColor="text-gray-900" borderColor="border-t-gray-200" />
+          <StatCard label="Pending Approval" value={stats.pendingApproval} subLabel="Pending Approval" icon={<ClockIcon />} valueColor="text-gray-900" borderColor="border-t-gray-200" />
+          <StatCard label="Vendor Assigned" value={stats.vendorAssigned} subLabel="Assigned" icon={<CheckIcon />} valueColor="text-gray-900" borderColor="border-t-gray-200" />
         </div>
 
         <div className="grid grid-cols-[1fr_380px] gap-4">
-          <ActivityChart data={activity} />
-          <PriorityDonut data={priorityDist} />
+          <ActivityChart />
+          <PriorityDonut />
         </div>
 
         <div className="grid grid-cols-[1fr_380px] gap-4">
-          <RecentRequests data={recentRequests} />
-          <VendorWorkload data={vendorWorkload} />
+          <RecentRequests />
+          <VendorWorkload />
         </div>
 
       </div>

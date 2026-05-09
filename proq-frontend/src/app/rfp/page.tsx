@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import RFPModal from './RFPModal'
+import { listRfps, type RfpDocument as ApiRfpDocument } from '@/lib/api/rfp'
 
 export type RFPStatus = 'All Statuses' | 'Draft' | 'Approved' | 'Pending'
 
@@ -196,46 +197,38 @@ const MOCK: RFPDocument[] = [
   },
 ]
 
+function toPageDoc(d: ApiRfpDocument): RFPDocument {
+  return {
+    id: d.id,
+    rfpId: d.rfpId,
+    requestId: d.requestId ?? '',
+    priority: d.priority ?? 'normal',
+    title: d.title,
+    time: d.createdAt ? new Date(d.createdAt).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) : '—',
+    rfpStatus: (d.rfpStatus as 'Draft' | 'Approved') ?? 'Draft',
+    vendorStatus: (d.vendorStatus as 'Assigned' | 'Pending') ?? 'Pending',
+    vendor: '—',
+    serviceType: d.serviceType ?? '—',
+    dateTime: d.dateTime ?? d.createdAt ?? '—',
+    description: d.description ?? '',
+    scope: d.scope ?? '',
+    specifications: d.specifications ?? [],
+    evaluationCriteria: d.evaluationCriteria ?? [],
+    customerRecordingUrl: null,
+    assistantRecordingUrl: null,
+    boq: d.boq ?? [],
+  }
+}
+
 export default function RFPDocumentsPage() {
   const [docs, setDocs]           = useState<RFPDocument[]>([])
   const [statusFilter, setStatus] = useState<string>('All Statuses')
   const [selected, setSelected]   = useState<RFPDocument | null>(null)
 
   useEffect(() => {
-    import('@/lib/api/rfp').then(({ getRfps }) =>
-      getRfps()
-        .then((data) => {
-          const mapped: RFPDocument[] = data.map((d) => ({
-            id: d.id,
-            rfpId: d.rfpId,
-            requestId: d.requestId ?? "",
-            priority: d.priority,
-            title: d.title,
-            time: d.dateTime ? new Date(d.dateTime).toLocaleString() : new Date(d.createdAt).toLocaleString(),
-            rfpStatus: (d.rfpStatus as 'Draft' | 'Approved') || 'Draft',
-            vendorStatus: (d.vendorStatus as 'Assigned' | 'Pending') || 'Pending',
-            vendor: "",
-            serviceType: d.serviceType,
-            dateTime: d.dateTime ?? d.createdAt,
-            description: d.description,
-            scope: d.scope,
-            specifications: d.specifications,
-            evaluationCriteria: d.evaluationCriteria,
-            customerRecordingUrl: null,
-            assistantRecordingUrl: null,
-            boq: d.boq.map((b) => ({
-              slNo: b.slNo,
-              description: b.description,
-              unit: b.unit,
-              quantity: b.quantity,
-              rate: b.rate,
-              amount: b.amount,
-            })),
-          }))
-          setDocs(mapped)
-        })
-        .catch(() => setDocs(MOCK))
-    )
+    listRfps()
+      .then((data) => setDocs(data.map(toPageDoc)))
+      .catch(console.error)
   }, [])
 
   const filtered = docs.filter(

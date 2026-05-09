@@ -1,39 +1,40 @@
-import { apiFetch } from "./client"
-import type { RfpDocument, BOQItem } from "@/types"
+import { apiFetch } from './client'
 
-export interface CreateRfpBody {
-  requestId?: string
-  title: string
-  serviceType: string
-  priority: string
-  description?: string
-  scope?: string
-  specifications?: string[]
-  evaluationCriteria?: string[]
+export type BOQItem = {
+  slNo: number
+  description: string
+  unit: string
+  quantity: number
+  rate: number | null
+  amount: number | null
 }
 
-export const getRfps = (params?: { status?: string }) => {
-  const qs = params?.status ? `?status=${params.status}` : ""
+export type RfpDocument = {
+  id: string
+  rfpId: string
+  requestId: string | null
+  priority: string | null
+  title: string
+  serviceType: string | null
+  description: string | null
+  scope: string | null
+  specifications: string[]
+  evaluationCriteria: string[]
+  rfpStatus: string
+  vendorStatus: string
+  boq: BOQItem[]
+  dateTime: string | null
+  createdAt: string
+  approvedAt: string | null
+}
+
+export const listRfps = (status?: string) => {
+  const qs = status && status !== 'All Statuses' ? `?status=${status}` : ''
   return apiFetch<RfpDocument[]>(`/api/rfp${qs}`)
 }
 
-export const getRfp = (id: string) =>
-  apiFetch<RfpDocument>(`/api/rfp/${id}`)
+export const updateRfp = (id: string, data: Partial<RfpDocument>) =>
+  apiFetch<RfpDocument>(`/api/rfp/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 
-export const createRfp = (body: CreateRfpBody) =>
-  apiFetch<RfpDocument>("/api/rfp", { method: "POST", body: JSON.stringify(body) })
-
-export const updateRfp = (id: string, body: Partial<CreateRfpBody & { rfpStatus?: string }>) =>
-  apiFetch<RfpDocument>(`/api/rfp/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(body),
-  })
-
-export const getBOQ = (id: string) =>
-  apiFetch<BOQItem[]>(`/api/rfp/${id}/boq`)
-
-export const addBOQ = (id: string, boq: BOQItem[]) =>
-  apiFetch<RfpDocument>(`/api/rfp/${id}/boq`, {
-    method: "POST",
-    body: JSON.stringify({ boq }),
-  })
+export const saveBoq = (id: string, boq: BOQItem[]) =>
+  apiFetch<RfpDocument>(`/api/rfp/${id}/boq`, { method: 'POST', body: JSON.stringify({ boq }) })
