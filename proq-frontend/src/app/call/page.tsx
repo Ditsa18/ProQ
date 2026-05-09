@@ -6,6 +6,7 @@ import { AnalysisData } from "@/types/analysis"
 import Navbar from "@/components/Navbar"
 import TranscriptPanel from "@/components/TranscriptPanel"
 import AnalysisPanel from "@/components/AnalysisPanel"
+import { Phone, Mic } from "lucide-react"
 
 // ── DEMO SCRIPT ──────────────────────────────────────────────────────────────
 // TODO (backend team): remove this and replace with real WebSocket stream.
@@ -197,31 +198,42 @@ export default function CallPage() {
       <Navbar isCallActive={isCallActive} />
 
       {/* CALL STATUS BAR */}
-      <div className="h-11 flex items-center gap-2.5 px-5 bg-white border-b border-gray-200 flex-shrink-0">
+<div className="h-11 flex items-center gap-4 px-5 bg-[#f6f6f7] border-b border-gray-200 flex-shrink-0">
 
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-full text-[11px] font-bold tracking-wide">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-          LIVE CALL
-        </span>
+  <div className="flex items-center gap-1.5 text-red-600 text-[11px] font-bold tracking-wide">
 
-        <span className="text-[15px] font-bold text-gray-900 tabular-nums tracking-widest">
-          {liveTime}
-        </span>
+    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
 
-        <span className="text-gray-300 text-sm">—</span>
-        <span className="text-gray-400 text-xs">△—</span>
-        <span className="text-gray-300 text-sm">—</span>
+    LIVE CALL
 
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-[11px] font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          {isCallActive ? "Connected" : "Idle"}
-        </span>
+  </div>
 
-        <span className="px-2 py-1 bg-gray-50 text-gray-500 border border-gray-200 rounded-full text-[11px]">
-          EN/HI
-        </span>
+  <span className="text-[15px] font-bold text-gray-900 tabular-nums tracking-widest">
+    {liveTime}
+  </span>
 
-      </div>
+  <span className="text-gray-300 text-sm">—</span>
+
+  <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+    <Phone size={12} />
+    <Mic size={12} />
+  </div>
+
+  <span className="text-gray-300 text-sm">—</span>
+
+  <div className="flex items-center gap-1.5 text-[11px] font-medium text-green-700">
+
+    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+
+    {isCallActive ? "Connected" : "Idle"}
+
+  </div>
+
+  <div className="text-[11px] text-gray-500 font-medium">
+    EN/HI
+  </div>
+
+</div>
 
       {/* MAIN CONTENT */}
       <div className="flex-1 grid grid-cols-2 gap-3 p-3 overflow-hidden min-h-0">

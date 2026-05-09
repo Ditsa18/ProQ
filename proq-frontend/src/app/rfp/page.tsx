@@ -60,73 +60,139 @@ const VENDOR_STATUS_BADGE: Record<string, string> = {
 // ── Mock data — remove when wired to backend ──────────────────────────────────
 const MOCK: RFPDocument[] = [
   {
-    id: '1', rfpId: 'RFP-20260416-001', requestId: '20260416T180356Z',
-    priority: 'urgent', title: 'AC Repair', time: '16 Apr 11:33 pm',
-    rfpStatus: 'Approved', vendorStatus: 'Assigned',
+    id: '1',
+    rfpId: 'RFP-20260416-001',
+    requestId: '20260416T180356Z',
+    priority: 'urgent',
+    title: 'AC Repair',
+    time: '16 Apr 11:33 pm',
+    rfpStatus: 'Approved',
+    vendorStatus: 'Assigned',
     vendor: 'BreezePro AC Services, MegaMachine Heavy Equipment Gurgaon, DoItPro General Services Vijay Nagar',
-    serviceType: 'AC Repair', dateTime: '16 Apr 11:33 pm',
+    serviceType: 'AC Repair',
+    dateTime: '16 Apr 11:33 pm',
     description: 'Request for urgent repair services for a non-functional AC unit in Thane, Mumbai. Technicians are required to inspect and diagnose the issue.',
-    scope: 'The service includes inspection, diagnosis, and repair of the AC unit.',
-    specifications: ['Inspection and fault diagnosis of the AC unit','Cleaning of cooling coil and filters','Gas pressure check and top-up if needed','Electrical connection check','Cleaning of condensate tray'],
-    evaluationCriteria: ['Experience in AC repair services','Ability to respond quickly and meet urgent timelines'],
-    customerRecordingUrl: null, assistantRecordingUrl: null,
+    scope: 'Inspection, diagnosis, servicing, and repair of AC unit.',
+    specifications: [
+      'Inspection and fault diagnosis',
+      'Cooling coil cleaning',
+      'Gas pressure check',
+      'Electrical connection check',
+      'Condensate tray cleaning'
+    ],
+    evaluationCriteria: [
+      'Experience in AC repair services',
+      'Quick response timeline',
+      'Availability of technicians'
+    ],
+    customerRecordingUrl: null,
+    assistantRecordingUrl: null,
     boq: [
-      { slNo:1, description:'AC inspection & fault diagnosis', unit:'LS', quantity:1, rate:1000, amount:1000 },
-      { slNo:2, description:'Cooling coil cleaning', unit:'Nos', quantity:1, rate:null, amount:null },
-      { slNo:3, description:'Gas pressure check & top-up if needed', unit:'Nos', quantity:1, rate:null, amount:null },
-      { slNo:4, description:'Filter cleaning & servicing', unit:'Nos', quantity:1, rate:null, amount:null },
-      { slNo:5, description:'Condensate tray cleaning', unit:'Nos', quantity:1, rate:null, amount:null },
-      { slNo:6, description:'Electrical connection check', unit:'LS', quantity:1, rate:null, amount:null },
-      { slNo:7, description:'Spare parts (if required)', unit:'LS', quantity:1, rate:null, amount:null },
-      { slNo:8, description:'Labour charges for repair', unit:'Hrs', quantity:2, rate:null, amount:null },
-      { slNo:9, description:'Testing & commissioning', unit:'LS', quantity:1, rate:null, amount:null },
+      { slNo:1, description:'AC inspection & diagnosis', unit:'LS', quantity:1, rate:1000, amount:1000 },
+      { slNo:2, description:'Cooling coil cleaning', unit:'Nos', quantity:1, rate:500, amount:500 },
     ],
   },
+
   {
-    id: '2', rfpId: 'RFP-20260416-002', requestId: '20260416T174627Z',
-    priority: 'normal', title: 'AC Repair', time: '16 Apr 11:16 pm',
-    rfpStatus: 'Approved', vendorStatus: 'Assigned',
-    vendor: 'BreezePro AC Services, MegaMachine Heavy Equipment Gurgaon, DoItPro General Services Vijay Nagar',
-    serviceType: 'AC Repair', dateTime: '16 Apr 11:16 pm',
-    description: 'Routine AC repair request.',
-    scope: 'Inspection and repair of AC unit.',
-    specifications: ['Inspection','Cleaning','Repair'],
-    evaluationCriteria: ['Experience','Response time'],
-    customerRecordingUrl: null, assistantRecordingUrl: null, boq: [],
+    id: '2',
+    rfpId: 'RFP-20260416-002',
+    requestId: '20260416T174627Z',
+    priority: 'normal',
+    title: 'Kitchen Deep Cleaning',
+    time: '16 Apr 11:16 pm',
+    rfpStatus: 'Approved',
+    vendorStatus: 'Assigned',
+    vendor: 'CleanPro Facility Services, Spark Maintenance Group, Urban Hygiene Solutions',
+    serviceType: 'Kitchen Cleaning',
+    dateTime: '16 Apr 11:16 pm',
+    description: 'Commercial kitchen deep cleaning request for restaurant operations before inspection.',
+    scope: 'Deep cleaning, degreasing, sanitization, and disposal management.',
+    specifications: [
+      'Floor scrubbing',
+      'Exhaust cleaning',
+      'Grease removal',
+      'Surface sanitization',
+      'Waste disposal'
+    ],
+    evaluationCriteria: [
+      'Commercial cleaning experience',
+      'Inspection compliance knowledge',
+      'Fast completion'
+    ],
+    customerRecordingUrl: null,
+    assistantRecordingUrl: null,
+    boq: [
+      { slNo:1, description:'Kitchen floor scrubbing', unit:'LS', quantity:1, rate:1200, amount:1200 },
+      { slNo:2, description:'Grease removal service', unit:'Nos', quantity:1, rate:800, amount:800 },
+    ],
   },
+
   {
-    id: '3', rfpId: 'RFP-20260416-003', requestId: 'SMOKE-TEST-001',
-    priority: 'high', title: 'Kitchen Deep Cleaning', time: '16 Apr 10:39 pm',
-    rfpStatus: 'Draft', vendorStatus: 'Pending',
-    vendor: '', serviceType: 'Kitchen Cleaning', dateTime: '16 Apr 10:39 pm',
-    description: 'Deep cleaning of commercial kitchen.', scope: 'Full kitchen cleaning.',
-    specifications: ['Degreasing','Floor scrubbing'], evaluationCriteria: ['Experience'],
-    customerRecordingUrl: null, assistantRecordingUrl: null, boq: [],
+    id: '3',
+    rfpId: 'RFP-20260416-003',
+    requestId: '20260416T162845Z',
+    priority: 'high',
+    title: 'Electrical Maintenance',
+    time: '16 Apr 10:39 pm',
+    rfpStatus: 'Draft',
+    vendorStatus: 'Pending',
+    vendor: 'VoltFix Electrical Services, SafeGrid Maintenance, Urban Utility Experts',
+    serviceType: 'Electrical Maintenance',
+    dateTime: '16 Apr 10:39 pm',
+    description: 'Electrical inspection and maintenance request for office premises experiencing voltage fluctuations.',
+    scope: 'Inspection, wiring checks, load balancing, and maintenance.',
+    specifications: [
+      'Circuit inspection',
+      'Panel maintenance',
+      'Load testing',
+      'Safety compliance checks',
+      'Power backup testing'
+    ],
+    evaluationCriteria: [
+      'Certified technicians',
+      'Commercial maintenance experience',
+      'Emergency support availability'
+    ],
+    customerRecordingUrl: null,
+    assistantRecordingUrl: null,
+    boq: [
+      { slNo:1, description:'Circuit inspection', unit:'LS', quantity:1, rate:900, amount:900 },
+      { slNo:2, description:'Panel maintenance', unit:'Nos', quantity:1, rate:700, amount:700 },
+    ],
   },
+
   {
-    id: '4', rfpId: 'RFP-20260416-004', requestId: '20260416T111247Z',
-    priority: 'P2', title: 'حادث سيارة', time: '16 Apr 04:42 pm',
-    rfpStatus: 'Approved', vendorStatus: 'Assigned',
-    vendor: 'Sgt. Khalid Al-Suwaidi', serviceType: 'حادث سيارة', dateTime: '16 Apr 04:42 pm',
-    description: 'تقرير حادث سيارة.', scope: 'المعاينة والتوثيق.',
-    specifications: ['فحص السيارة'], evaluationCriteria: ['الخبرة'],
-    customerRecordingUrl: null, assistantRecordingUrl: null, boq: [],
-  },
-  {
-    id: '5', rfpId: 'RFP-20260416-005', requestId: '20260416T111126Z',
-    priority: 'P4', title: 'غير محدد', time: '16 Apr 04:41 pm',
-    rfpStatus: 'Draft', vendorStatus: 'Pending',
-    vendor: '', serviceType: 'غير محدد', dateTime: '16 Apr 04:41 pm',
-    description: '', scope: '', specifications: [], evaluationCriteria: [],
-    customerRecordingUrl: null, assistantRecordingUrl: null, boq: [],
-  },
-  {
-    id: '6', rfpId: 'RFP-20260416-006', requestId: '20260416T110026Z',
-    priority: 'P3', title: 'حادث تصادم سيارات', time: '16 Apr 04:30 pm',
-    rfpStatus: 'Approved', vendorStatus: 'Assigned',
-    vendor: 'Sgt. Khalid Al-Suwaidi', serviceType: 'حادث تصادم', dateTime: '16 Apr 04:30 pm',
-    description: 'تصادم مركبتين.', scope: 'المعاينة.', specifications: [], evaluationCriteria: [],
-    customerRecordingUrl: null, assistantRecordingUrl: null, boq: [],
+    id: '4',
+    rfpId: 'RFP-20260416-004',
+    requestId: '20260416T111247Z',
+    priority: 'P2',
+    title: 'Vehicle Collision Report',
+    time: '16 Apr 04:42 pm',
+    rfpStatus: 'Approved',
+    vendorStatus: 'Assigned',
+    vendor: 'Rapid Response Inspection Services, Metro Auto Claims, SafeDrive Assessments',
+    serviceType: 'Vehicle Inspection',
+    dateTime: '16 Apr 04:42 pm',
+    description: 'Vehicle collision assessment request for insurance and damage documentation.',
+    scope: 'Damage inspection, reporting, and claim documentation.',
+    specifications: [
+      'Vehicle inspection',
+      'Damage photography',
+      'Insurance reporting',
+      'Assessment documentation',
+      'Claim support'
+    ],
+    evaluationCriteria: [
+      'Automotive assessment expertise',
+      'Insurance coordination experience',
+      'Quick report turnaround'
+    ],
+    customerRecordingUrl: null,
+    assistantRecordingUrl: null,
+    boq: [
+      { slNo:1, description:'Vehicle inspection', unit:'LS', quantity:1, rate:1500, amount:1500 },
+      { slNo:2, description:'Damage documentation', unit:'Nos', quantity:1, rate:600, amount:600 },
+    ],
   },
 ]
 
@@ -163,7 +229,7 @@ export default function RFPDocumentsPage() {
       <Navbar />
 
       {/* toolbar */}
-      <div className="flex items-center gap-3 px-6 py-4 bg-white border-b border-gray-200">
+      <div className="flex items-center gap-3 px-6 py-4">
         <div className="relative">
           <select
             value={statusFilter}
@@ -193,46 +259,73 @@ export default function RFPDocumentsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((doc) => (
             <button
-              key={doc.id}
-              type="button"
-              onClick={() => setSelected(doc)}
-              className="text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-blue-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-              {/* top row: priority + requestId + time */}
-              <div className="flex items-center gap-2 min-w-0">
-                <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded ${PRIORITY_BADGE[doc.priority] ?? 'bg-gray-100 text-gray-500'}`}>
-                  {doc.priority}
-                </span>
-                <span className="flex-1 text-[11px] font-mono text-blue-600 font-semibold truncate">
-                  {doc.requestId}
-                </span>
-                <span className="shrink-0 text-[10px] text-gray-400">{doc.time}</span>
-              </div>
+  key={doc.id}
+  type="button"
+  onClick={() => setSelected(doc)}
+  className="text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[190px] flex flex-col justify-between"
+>
 
-              {/* title */}
-              <p className="mt-2 text-[13px] font-semibold text-gray-800" dir="auto">
-                {doc.title}
-              </p>
+  <div>
 
-              {/* divider */}
-              <div className="my-2.5 border-t border-gray-100" />
+    {/* TOP ROW */}
+    <div className="flex items-start justify-between gap-2">
 
-              {/* status badges + vendor */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${RFP_STATUS_BADGE[doc.rfpStatus]}`}>
-                  {doc.rfpStatus}
-                </span>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${VENDOR_STATUS_BADGE[doc.vendorStatus]}`}>
-                  {doc.vendorStatus}
-                </span>
-              </div>
+      <span
+        className={`text-[10px] font-semibold px-2 py-0.5 rounded whitespace-nowrap ${
+          PRIORITY_BADGE[doc.priority] ?? "bg-gray-100 text-gray-500"
+        }`}
+      >
+        {doc.priority}
+      </span>
 
-              {doc.vendor && (
-                <p className="mt-2 text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
-                  {doc.vendor}
-                </p>
-              )}
-            </button>
+      <span className="text-[10px] text-gray-400 whitespace-nowrap">
+        {doc.time}
+      </span>
+
+    </div>
+
+    {/* REQUEST ID */}
+    <p className="mt-3 text-[11px] font-mono font-semibold text-gray-500 truncate">
+      {doc.requestId}
+    </p>
+
+    {/* TITLE */}
+    <p
+      className="mt-1 text-[14px] font-semibold text-gray-900 line-clamp-1"
+      dir="auto"
+    >
+      {doc.title}
+    </p>
+
+    {/* VENDOR */}
+    <p className="mt-3 text-[11px] text-gray-500 leading-relaxed line-clamp-2 min-h-[34px]">
+      {doc.vendor || "Vendor assignment pending"}
+    </p>
+
+  </div>
+
+  {/* BOTTOM BADGES */}
+  <div className="flex items-center gap-2 pt-4">
+
+    <span
+      className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+        RFP_STATUS_BADGE[doc.rfpStatus]
+      }`}
+    >
+      {doc.rfpStatus}
+    </span>
+
+    <span
+      className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+        VENDOR_STATUS_BADGE[doc.vendorStatus]
+      }`}
+    >
+      {doc.vendorStatus}
+    </span>
+
+  </div>
+
+</button>
           ))}
         </div>
       </div>
