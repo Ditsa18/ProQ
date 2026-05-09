@@ -202,10 +202,40 @@ export default function RFPDocumentsPage() {
   const [selected, setSelected]   = useState<RFPDocument | null>(null)
 
   useEffect(() => {
-    fetch('/api/rfp-documents')
-      .then((r) => r.json())
-      .then(setDocs)
-      .catch(() => setDocs(MOCK))
+    import('@/lib/api/rfp').then(({ getRfps }) =>
+      getRfps()
+        .then((data) => {
+          const mapped: RFPDocument[] = data.map((d) => ({
+            id: d.id,
+            rfpId: d.rfpId,
+            requestId: d.requestId ?? "",
+            priority: d.priority,
+            title: d.title,
+            time: d.dateTime ? new Date(d.dateTime).toLocaleString() : new Date(d.createdAt).toLocaleString(),
+            rfpStatus: (d.rfpStatus as 'Draft' | 'Approved') || 'Draft',
+            vendorStatus: (d.vendorStatus as 'Assigned' | 'Pending') || 'Pending',
+            vendor: "",
+            serviceType: d.serviceType,
+            dateTime: d.dateTime ?? d.createdAt,
+            description: d.description,
+            scope: d.scope,
+            specifications: d.specifications,
+            evaluationCriteria: d.evaluationCriteria,
+            customerRecordingUrl: null,
+            assistantRecordingUrl: null,
+            boq: d.boq.map((b) => ({
+              slNo: b.slNo,
+              description: b.description,
+              unit: b.unit,
+              quantity: b.quantity,
+              rate: b.rate,
+              amount: b.amount,
+            })),
+          }))
+          setDocs(mapped)
+        })
+        .catch(() => setDocs(MOCK))
+    )
   }, [])
 
   const filtered = docs.filter(

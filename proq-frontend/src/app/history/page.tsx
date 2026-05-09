@@ -1,243 +1,98 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Navbar from "@/components/Navbar"
+import { getHistory, searchHistory } from "@/lib/api/history"
+import type { ServiceRequest } from "@/types"
 
-// ── TYPES ────────────────────────────────────────────────────────────────────
-
-type RFPStatus = "Approved" | "Draft" | "Pending"
-type VendorStatus = "Assigned" | "Pending" | "Draft"
-type Priority = "urgent" | "normal" | "high" | "P2" | "P3" | "P4"
-
-interface HistoryEntry {
-  id: number
-  time: string
-  serviceType: string
-  priority: Priority
-  location: string
-  rfpStatus: RFPStatus
-  vendorStatus: VendorStatus
-  assignedTo: string
-}
-
-// ── DUMMY DATA ────────────────────────────────────────────────────────────────
-// TODO (backend team): replace with real API call e.g:
-// const { data } = useSWR("/api/history", fetcher)
-
-const HISTORY: HistoryEntry[] = [
-  {
-    id: 1,
-    time: "16 Apr 11:33 pm",
-    serviceType: "AC Repair",
-    priority: "urgent",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "BreezePro AC Services, MegaMachine Heavy Equipment Gurgaon, DoItPro General Services Vijay Nagar",
-  },
-  {
-    id: 2,
-    time: "16 Apr 11:16 pm",
-    serviceType: "AC Repair",
-    priority: "normal",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "BreezePro AC Services, MegaMachine Heavy Equipment Gurgaon, DoItPro General Services Vijay Nagar",
-  },
-  {
-    id: 3,
-    time: "16 Apr 10:39 pm",
-    serviceType: "Kitchen Deep Cleaning",
-    priority: "high",
-    location: "Koramangala",
-    rfpStatus: "Draft",
-    vendorStatus: "Pending",
-    assignedTo: "—",
-  },
-  {
-    id: 4,
-    time: "16 Apr 04:42 pm",
-    serviceType: "حادث سيارة",
-    priority: "P2",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Sgt. Khalid Al-Suwaidi",
-  },
-  {
-    id: 5,
-    time: "16 Apr 04:41 pm",
-    serviceType: "غير محدد",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Draft",
-    vendorStatus: "Pending",
-    assignedTo: "—",
-  },
-  {
-    id: 6,
-    time: "16 Apr 04:30 pm",
-    serviceType: "حادث تصادم سيارات",
-    priority: "P3",
-    location: "المنطقة المحيطة بدبي مول",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Sgt. Khalid Al-Suwaidi",
-  },
-  {
-    id: 7,
-    time: "16 Apr 04:09 pm",
-    serviceType: "حادث",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Sgt. Khalid Al-Suwaidi",
-  },
-  {
-    id: 8,
-    time: "16 Apr 04:02 pm",
-    serviceType: "—",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Pending",
-    vendorStatus: "Pending",
-    assignedTo: "—",
-  },
-  {
-    id: 9,
-    time: "16 Apr 03:58 pm",
-    serviceType: "—",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Draft",
-    assignedTo: "—",
-  },
-  {
-    id: 10,
-    time: "16 Apr 03:46 pm",
-    serviceType: "غير محدد",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Lt. Fatima Al-Hammadi",
-  },
-  {
-    id: 11,
-    time: "16 Apr 03:44 pm",
-    serviceType: "—",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Pending",
-    vendorStatus: "Pending",
-    assignedTo: "—",
-  },
-  {
-    id: 12,
-    time: "16 Apr 03:38 pm",
-    serviceType: "غير محدد",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Draft",
-    vendorStatus: "Pending",
-    assignedTo: "—",
-  },
-  {
-    id: 13,
-    time: "16 Apr 03:09 pm",
-    serviceType: "غير محدد",
-    priority: "P4",
-    location: "—",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Lt. Fatima Al-Hammadi",
-  },
-  {
-    id: 14,
-    time: "16 Apr 02:52 pm",
-    serviceType: "حادثة السير",
-    priority: "P4",
-    location: "الشيخ زيد بجد المخرج 39",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Lt. Fatima Al-Hammadi",
-  },
-  {
-    id: 15,
-    time: "16 Apr 02:41 pm",
-    serviceType: "حادث سيارة",
-    priority: "P3",
-    location: "دبي مول",
-    rfpStatus: "Approved",
-    vendorStatus: "Assigned",
-    assignedTo: "Sgt. Khalid Al-Suwaidi",
-  },
-]
-
-const ITEMS_PER_PAGE = 15
-
-// ── STYLE HELPERS ─────────────────────────────────────────────────────────────
-
-const RFP_BADGE: Record<RFPStatus, string> = {
+const RFP_BADGE: Record<string, string> = {
   Approved: "bg-green-100 text-green-700",
   Draft:    "bg-blue-100 text-blue-600",
   Pending:  "bg-orange-100 text-orange-600",
 }
 
-const VENDOR_BADGE: Record<VendorStatus, string> = {
+const VENDOR_BADGE: Record<string, string> = {
   Assigned: "text-gray-700 font-medium",
   Pending:  "bg-orange-100 text-orange-600 px-2 py-0.5 rounded",
-  Draft:    "bg-blue-100 text-blue-600 px-2 py-0.5 rounded",
 }
 
-const PRIORITY_STYLE: Record<Priority, string> = {
+const PRIORITY_STYLE: Record<string, string> = {
   urgent: "text-red-600 font-semibold",
   normal: "text-gray-600",
   high:   "text-orange-500 font-semibold",
-  P2:     "bg-orange-400 text-white px-2 py-0.5 rounded text-[10px] font-bold",
-  P3:     "bg-amber-400 text-white px-2 py-0.5 rounded text-[10px] font-bold",
-  P4:     "bg-gray-400 text-white px-2 py-0.5 rounded text-[10px] font-bold",
+  low:    "text-green-600 font-semibold",
 }
 
-// ── COMPONENT ─────────────────────────────────────────────────────────────────
+const ITEMS_PER_PAGE = 15
 
 export default function HistoryPage() {
   const router = useRouter()
 
+  const [all, setAll] = useState<ServiceRequest[]>([])
+  const [filtered, setFiltered] = useState<ServiceRequest[]>([])
   const [search, setSearch] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("All Priorities")
   const [statusFilter, setStatusFilter] = useState("All Statuses")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [page, setPage] = useState(1)
-  const [filtered, setFiltered] = useState<HistoryEntry[]>(HISTORY)
+  const [loading, setLoading] = useState(true)
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  useEffect(() => {
+    getHistory()
+      .then((data) => {
+        setAll(data)
+        setFiltered(data)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
 
-  const handleSearch = () => {
-    // TODO (backend team): replace with real API search/filter call
-    let results = HISTORY
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      results = results.filter(
-        (r) =>
-          r.serviceType.toLowerCase().includes(q) ||
-          r.assignedTo.toLowerCase().includes(q) ||
-          r.location.toLowerCase().includes(q)
-      )
+  const handleSearch = async () => {
+    const hasFilters =
+      priorityFilter !== "All Priorities" ||
+      statusFilter !== "All Statuses" ||
+      dateFrom ||
+      dateTo
+
+    if (hasFilters) {
+      const params: Record<string, string> = {}
+      if (priorityFilter !== "All Priorities") params.priority = priorityFilter
+      if (statusFilter !== "All Statuses") params.status = statusFilter
+      if (dateFrom) params.from = dateFrom
+      if (dateTo) params.to = dateTo
+
+      try {
+        const results = await searchHistory(params)
+        let data = results
+        if (search.trim()) {
+          const q = search.toLowerCase()
+          data = data.filter(
+            (r) =>
+              (r.serviceType ?? "").toLowerCase().includes(q) ||
+              (r.location ?? "").toLowerCase().includes(q)
+          )
+        }
+        setFiltered(data)
+      } catch {
+        setFiltered([])
+      }
+    } else {
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        setFiltered(
+          all.filter(
+            (r) =>
+              (r.serviceType ?? "").toLowerCase().includes(q) ||
+              (r.location ?? "").toLowerCase().includes(q)
+          )
+        )
+      } else {
+        setFiltered(all)
+      }
     }
-    if (priorityFilter !== "All Priorities") {
-      results = results.filter((r) => r.priority === priorityFilter.toLowerCase())
-    }
-    if (statusFilter !== "All Statuses") {
-      results = results.filter((r) => r.rfpStatus === statusFilter || r.vendorStatus === statusFilter)
-    }
-    setFiltered(results)
+
     setPage(1)
   }
 
@@ -247,9 +102,12 @@ export default function HistoryPage() {
     setStatusFilter("All Statuses")
     setDateFrom("")
     setDateTo("")
-    setFiltered(HISTORY)
+    setFiltered(all)
     setPage(1)
   }
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -257,7 +115,6 @@ export default function HistoryPage() {
 
       <div className="flex-1 px-6 py-5">
 
-        {/* ── FILTER BAR ── */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">
 
           <input
@@ -274,7 +131,7 @@ export default function HistoryPage() {
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-600 outline-none focus:border-blue-300 bg-white"
           >
-            {["All Priorities", "urgent", "high", "normal", "P2", "P3", "P4"].map((p) => (
+            {["All Priorities", "urgent", "high", "normal", "low"].map((p) => (
               <option key={p}>{p}</option>
             ))}
           </select>
@@ -284,7 +141,7 @@ export default function HistoryPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-600 outline-none focus:border-blue-300 bg-white"
           >
-            {["All Statuses", "Approved", "Draft", "Pending", "Assigned"].map((s) => (
+            {["All Statuses", "Draft", "Assigned", "Pending"].map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
@@ -319,107 +176,107 @@ export default function HistoryPage() {
 
         </div>
 
-        {/* ── TABLE ── */}
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-gray-100">
-              {["Time", "Service Type", "Priority", "Location", "RFP Status", "Vendor Status", "Assigned To", "Actions"].map((h) => (
-                <th
-                  key={h}
-                  className="text-left text-[12px] text-gray-500 font-medium pb-3 pr-4 last:text-right"
+        {loading ? (
+          <p className="text-[13px] text-gray-400 py-12 text-center">Loading...</p>
+        ) : (
+          <>
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {["Time", "Service Type", "Priority", "Location", "Status", "Actions"].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left text-[12px] text-gray-500 font-medium pb-3 pr-4 last:text-right"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((row) => (
+                  <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition">
+
+                    <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">
+                      {new Date(row.createdAt).toLocaleString()}
+                    </td>
+
+                    <td className="py-3 pr-4 text-gray-800 font-medium whitespace-nowrap">
+                      {row.serviceType || "—"}
+                    </td>
+
+                    <td className="py-3 pr-4">
+                      <span className={`text-[12px] ${PRIORITY_STYLE[row.priority] ?? "text-gray-600"}`}>
+                        {row.priority}
+                      </span>
+                    </td>
+
+                    <td className="py-3 pr-4 text-gray-500 max-w-[140px] truncate">
+                      {row.location || "—"}
+                    </td>
+
+                    <td className="py-3 pr-4">
+                      <span className={`text-[12px] px-2 py-0.5 rounded font-medium ${RFP_BADGE[row.status] ?? "bg-gray-100 text-gray-500"}`}>
+                        {row.status}
+                      </span>
+                    </td>
+
+                    <td className="py-3 text-right">
+                      <button
+                        onClick={() => router.push(`/history/${row.requestId}`)}
+                        className="text-[12px] text-blue-600 hover:text-blue-700 font-medium border border-blue-200 rounded-md px-2.5 py-1 hover:bg-blue-50 transition"
+                      >
+                        View
+                      </button>
+                    </td>
+
+                  </tr>
+                ))}
+
+                {paginated.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-[13px] text-gray-400">
+                      No records found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1.5 mt-6">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map((row) => (
-              <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition">
+                  Prev
+                </button>
 
-                <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">{row.time}</td>
-
-                <td className="py-3 pr-4 text-gray-800 font-medium whitespace-nowrap">{row.serviceType}</td>
-
-                <td className="py-3 pr-4">
-                  <span className={`text-[12px] ${PRIORITY_STYLE[row.priority]}`}>
-                    {row.priority}
-                  </span>
-                </td>
-
-                <td className="py-3 pr-4 text-gray-500 max-w-[140px] truncate">{row.location}</td>
-
-                <td className="py-3 pr-4">
-                  <span className={`text-[12px] px-2 py-0.5 rounded font-medium ${RFP_BADGE[row.rfpStatus]}`}>
-                    {row.rfpStatus}
-                  </span>
-                </td>
-
-                <td className="py-3 pr-4">
-                  <span className={`text-[12px] ${VENDOR_BADGE[row.vendorStatus]}`}>
-                    {row.vendorStatus}
-                  </span>
-                </td>
-
-                <td className="py-3 pr-4 text-gray-600 max-w-[260px] leading-relaxed">
-                  {row.assignedTo}
-                </td>
-
-                <td className="py-3 text-right">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                   <button
-                    onClick={() => router.push(`/history/${row.id}`)}
-                    className="text-[12px] text-blue-600 hover:text-blue-700 font-medium border border-blue-200 rounded-md px-2.5 py-1 hover:bg-blue-50 transition"
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-8 h-8 rounded-md text-[12px] font-medium transition ${
+                      p === page
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-500 border border-gray-200 hover:bg-gray-50"
+                    }`}
                   >
-                    View
+                    {p}
                   </button>
-                </td>
+                ))}
 
-              </tr>
-            ))}
-
-            {paginated.length === 0 && (
-              <tr>
-                <td colSpan={8} className="py-12 text-center text-[13px] text-gray-400">
-                  No records found
-                </td>
-              </tr>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Next
+                </button>
+              </div>
             )}
-          </tbody>
-        </table>
-
-        {/* ── PAGINATION ── */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1.5 mt-6">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              Prev
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`w-8 h-8 rounded-md text-[12px] font-medium transition ${
-                  p === page
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-500 border border-gray-200 hover:bg-gray-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              Next
-            </button>
-          </div>
+          </>
         )}
 
       </div>

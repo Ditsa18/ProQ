@@ -7,7 +7,14 @@ import ActivityChart from "@/components/dashboard/ActivityChart"
 import PriorityDonut from "@/components/dashboard/PriorityDonut"
 import RecentRequests from "@/components/dashboard/RecentRequests"
 import VendorWorkload from "@/components/dashboard/VendorWorkload"
-import { STATS } from "@/lib/dashboardData"
+import {
+  getStats,
+  getActivity,
+  getPriorityDistribution,
+  getVendorWorkload,
+  getRecentRequests,
+} from "@/lib/api/dashboard"
+import type { DashboardStats, ActivityBucket, PriorityDistribution, VendorWorkload as VendorWorkloadType, ServiceRequest } from "@/types"
 
 const PhoneIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,35 +42,32 @@ const CheckIcon = () => (
   </svg>
 )
 
-function useClock() {
-  const [time, setTime] = useState("")
-  const [dateStr, setDateStr] = useState("")
-
-  useEffect(() => {
-    const update = () => {
-      const now = new Date()
-      setTime(now.toTimeString().slice(0, 8))
-      setDateStr(now.toLocaleDateString("en-US", {
-        weekday: "long", year: "numeric", month: "long", day: "numeric",
-      }))
-    }
-    update()
-    const t = setInterval(update, 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  return { time, dateStr }
+const EMPTY_STATS: DashboardStats = {
+  totalRequests: 0,
+  urgentRequests: 0,
+  pendingApproval: 0,
+  vendorAssigned: 0,
 }
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
+  const [activity, setActivity] = useState<ActivityBucket[]>([])
+  const [priorityDist, setPriorityDist] = useState<PriorityDistribution>({})
+  const [vendorWorkload, setVendorWorkload] = useState<VendorWorkloadType>({})
+  const [recentRequests, setRecentRequests] = useState<ServiceRequest[]>([])
 
-  // const { time, dateStr } = useClock()
+  useEffect(() => {
+    getStats().then(setStats).catch(() => {})
+    getActivity().then(setActivity).catch(() => {})
+    getPriorityDistribution().then(setPriorityDist).catch(() => {})
+    getVendorWorkload().then(setVendorWorkload).catch(() => {})
+    getRecentRequests().then(setRecentRequests).catch(() => {})
+  }, [])
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-      {/* Page header */}
       <div className="flex items-start justify-between px-6 py-4">
         <div>
           <h1 className="text-[22px] font-bold text-gray-900">Dashboard</h1>
@@ -71,72 +75,53 @@ export default function DashboardPage() {
             ProQ — Procurement &amp; Services Overview
           </p>
         </div>
-
-        {/*
-        <div className="text-right">
-          <div className="text-[22px] font-bold text-gray-900 tabular-nums">
-            {time}
-          </div>
-          <div className="text-[12px] text-gray-400 mt-0.5">
-            {dateStr}
-          </div>
-        </div>
-        */}
       </div>
 
       <div className="flex-1 px-6 py-5 flex flex-col gap-4 overflow-auto">
 
-        {/* ── STAT CARDS ── */}
         <div className="grid grid-cols-4 gap-4">
-
           <StatCard
-  label="Total Requests"
-  value={STATS.totalRequests}
-  subLabel="Total Requests"
-  icon={<PhoneIcon />}
-  valueColor="text-gray-900"
-  borderColor="border-t-gray-200"
-/>
-
-<StatCard
-  label="Urgent Requests"
-  value={STATS.urgentRequests}
-  subLabel="Urgent"
-  icon={<AlertIcon />}
-  valueColor="text-gray-900"
-  borderColor="border-t-gray-200"
-/>
-
-<StatCard
-  label="Pending Approval"
-  value={STATS.pendingApproval}
-  subLabel="Pending Approval"
-  icon={<ClockIcon />}
-  valueColor="text-gray-900"
-  borderColor="border-t-gray-200"
-/>
-
-<StatCard
-  label="Vendor Assigned"
-  value={STATS.vendorAssigned}
-  subLabel="Assigned"
-  icon={<CheckIcon />}
-  valueColor="text-gray-900"
-  borderColor="border-t-gray-200"
-/>
-
+            label="Total Requests"
+            value={stats.totalRequests}
+            subLabel="Total Requests"
+            icon={<PhoneIcon />}
+            valueColor="text-gray-900"
+            borderColor="border-t-gray-200"
+          />
+          <StatCard
+            label="Urgent Requests"
+            value={stats.urgentRequests}
+            subLabel="Urgent"
+            icon={<AlertIcon />}
+            valueColor="text-gray-900"
+            borderColor="border-t-gray-200"
+          />
+          <StatCard
+            label="Pending Approval"
+            value={stats.pendingApproval}
+            subLabel="Pending Approval"
+            icon={<ClockIcon />}
+            valueColor="text-gray-900"
+            borderColor="border-t-gray-200"
+          />
+          <StatCard
+            label="Vendor Assigned"
+            value={stats.vendorAssigned}
+            subLabel="Assigned"
+            icon={<CheckIcon />}
+            valueColor="text-gray-900"
+            borderColor="border-t-gray-200"
+          />
         </div>
 
-        {/* ── CHARTS ROW ── */}
         <div className="grid grid-cols-[1fr_380px] gap-4">
-          <ActivityChart />
-          <PriorityDonut />
+          <ActivityChart data={activity} />
+          <PriorityDonut data={priorityDist} />
         </div>
 
-        {/* ── BOTTOM ROW ── */}
         <div className="grid grid-cols-[1fr_380px] gap-4">
-          <RecentRequests />
-          <VendorWorkload />
+          <RecentRequests data={recentRequests} />
+          <VendorWorkload data={vendorWorkload} />
         </div>
 
       </div>

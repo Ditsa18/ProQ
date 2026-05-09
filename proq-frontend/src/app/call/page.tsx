@@ -2,16 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AnalysisData } from "@/types/analysis"
+import { AnalysisData } from "@/types"
 import Navbar from "@/components/Navbar"
 import TranscriptPanel from "@/components/TranscriptPanel"
 import AnalysisPanel from "@/components/AnalysisPanel"
 import { Phone, Mic } from "lucide-react"
-
-// ── DEMO SCRIPT ──────────────────────────────────────────────────────────────
-// TODO (backend team): remove this and replace with real WebSocket stream.
-// Each entry: role, text, delay in ms after previous message, and optional
-// analysis fields to update when this message appears.
+import { createCall, addCallAnalysis } from "@/lib/api/calls"
+import { createServiceRequest } from "@/lib/api/serviceRequests"
 
 interface ScriptEntry {
   role: "assistant" | "customer"
@@ -96,7 +93,6 @@ const DEMO_SCRIPT: ScriptEntry[] = [
     delay: 1600,
   },
 ]
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function CallPage() {
   const router = useRouter()
@@ -121,20 +117,21 @@ export default function CallPage() {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const scriptTimers = useRef<NodeJS.Timeout[]>([])
+  const analysisRef = useRef<AnalysisData>(analysis)
+  const messagesRef = useRef(messages)
 
-  // ── Live timer ──
+  useEffect(() => { analysisRef.current = analysis }, [analysis])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
   useEffect(() => {
     if (!isCallActive) return
     timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000)
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [isCallActive])
 
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
 
-  // ── Start call: replay demo script ──
   const startCall = () => {
     setSeconds(0)
     setMessages([])
@@ -147,26 +144,21 @@ export default function CallPage() {
 
     let cumDelay = 0
 
-    DEMO_SCRIPT.forEach((entry, i) => {
+    DEMO_SCRIPT.forEach((entry) => {
       cumDelay += entry.delay
 
-      // Show typing indicator just before this message appears
       const typingTimer = setTimeout(() => {
         setMessages((prev) => {
-          // Remove any existing typing bubble
           const filtered = prev.filter((m) => !m.typing)
           return [...filtered, { role: entry.role, text: "", typing: true }]
         })
       }, cumDelay - 600)
 
-      // Show the actual message
       const msgTimer = setTimeout(() => {
         setMessages((prev) => {
           const filtered = prev.filter((m) => !m.typing)
           return [...filtered, { role: entry.role, text: entry.text }]
         })
-
-        // Update analysis if this message carries new data
         if (entry.analysis) {
           setAnalysis((prev) => ({ ...prev, ...entry.analysis }))
         }
@@ -176,17 +168,45 @@ export default function CallPage() {
     })
   }
 
-  // ── End call: clear everything and go to post-call page ──
-  const endCall = () => {
+  const endCall = async () => {
     setIsCallActive(false)
     setIsProcessing(false)
     scriptTimers.current.forEach(clearTimeout)
     scriptTimers.current = []
     if (timerRef.current) clearInterval(timerRef.current)
 
-    // TODO (backend team): pass real analysis data via query params, context, or API
-    // For now we navigate to the post-call summary page
-    router.push("/call/summary")
+    const currentAnalysis = analysisRef.current
+    const currentMessages = messagesRef.current.filter((m) => !m.typing)
+
+    try {
+      const serviceRequest = await createServiceRequest({
+        serviceType: currentAnalysis.serviceType || "Unknown",
+        priority: currentAnalysis.priority?.toLowerCase().includes("urgent") ? "urgent" : "normal",
+        location: currentAnalysis.location || "",
+        budget: currentAnalysis.budget || "",
+        contactInfo: currentAnalysis.contactInfo,
+        specifications: currentAnalysis.specifications ? [currentAnalysis.specifications] : [],
+        specialRequirements: currentAnalysis.specialRequirements,
+        status: "Draft",
+      })
+
+      const call = await createCall({ requestId: serviceRequest.id })
+
+      await addCallAnalysis(call.id, {
+        analysis: currentAnalysis,
+        transcript: currentMessages.map((m, i) => ({
+          id: String(i),
+          role: m.role === "customer" ? "user" : "assistant",
+          content: m.text,
+          timestamp: new Date().toISOString(),
+        })),
+        status: "completed",
+      })
+
+      router.push(`/call/summary?callId=${call.id}&requestId=${serviceRequest.id}`)
+    } catch {
+      router.push("/call/summary")
+    }
   }
 
   const liveTime = formatTime(seconds)
@@ -194,48 +214,37 @@ export default function CallPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
 
-      {/* NAVBAR */}
       <Navbar isCallActive={isCallActive} />
 
-      {/* CALL STATUS BAR */}
-<div className="h-11 flex items-center gap-4 px-5 bg-[#f6f6f7] border-b border-gray-200 flex-shrink-0">
+      <div className="h-11 flex items-center gap-4 px-5 bg-[#f6f6f7] border-b border-gray-200 flex-shrink-0">
 
-  <div className="flex items-center gap-1.5 text-red-600 text-[11px] font-bold tracking-wide">
+        <div className="flex items-center gap-1.5 text-red-600 text-[11px] font-bold tracking-wide">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          LIVE CALL
+        </div>
 
-    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+        <span className="text-[15px] font-bold text-gray-900 tabular-nums tracking-widest">
+          {liveTime}
+        </span>
 
-    LIVE CALL
+        <span className="text-gray-300 text-sm">—</span>
 
-  </div>
+        <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+          <Phone size={12} />
+          <Mic size={12} />
+        </div>
 
-  <span className="text-[15px] font-bold text-gray-900 tabular-nums tracking-widest">
-    {liveTime}
-  </span>
+        <span className="text-gray-300 text-sm">—</span>
 
-  <span className="text-gray-300 text-sm">—</span>
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-green-700">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          {isCallActive ? "Connected" : "Idle"}
+        </div>
 
-  <div className="flex items-center gap-1.5 text-gray-400 text-xs">
-    <Phone size={12} />
-    <Mic size={12} />
-  </div>
+        <div className="text-[11px] text-gray-500 font-medium">EN/HI</div>
 
-  <span className="text-gray-300 text-sm">—</span>
+      </div>
 
-  <div className="flex items-center gap-1.5 text-[11px] font-medium text-green-700">
-
-    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-
-    {isCallActive ? "Connected" : "Idle"}
-
-  </div>
-
-  <div className="text-[11px] text-gray-500 font-medium">
-    EN/HI
-  </div>
-
-</div>
-
-      {/* MAIN CONTENT */}
       <div className="flex-1 grid grid-cols-2 gap-3 p-3 overflow-hidden min-h-0">
 
         <div className="bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden">
@@ -248,7 +257,6 @@ export default function CallPage() {
 
       </div>
 
-      {/* FOOTER BAR */}
       <div className="h-11 flex items-center justify-between px-4 bg-white border-t border-gray-200 flex-shrink-0">
 
         <div className="flex items-center gap-3">
@@ -282,15 +290,10 @@ export default function CallPage() {
 
         </div>
 
-        {/* Waveform + voice */}
         <div className="flex items-center gap-3">
-
-          
-
           <button className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 text-[11px] text-gray-600 hover:bg-gray-100 transition">
             🎙 EN/HI Voice
           </button>
-
         </div>
 
       </div>
